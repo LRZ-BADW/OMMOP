@@ -16,6 +16,7 @@ const n_t alpha = v;
 const int env_omp_num_teams = getenv("OMP_NUM_TEAMS") ? atoi(getenv("OMP_NUM_TEAMS")) : 1;
 const int want_verbose = getenv("VERBOSE") ? atoi(getenv("VERBOSE")) : 0;
 const int want_randomized = getenv("RANDOMIZED") ? atoi(getenv("RANDOMIZED")) : 1;
+const int want_kernel = getenv("KERNEL") ? atoi(getenv("KERNEL")) : 1;
 const auto const_seed = std::random_device()();
 using t_t = double;
 
@@ -116,3 +117,35 @@ void MatMatMul_GPU___openmp(void)
 }
 
        
+
+void MatMatMul_GPU___data_0(void)
+{
+	const a_t A{gen_mtx()}, B(gen_mtx());
+	const n_t *a = A.data(), *b = B.data();
+	a_t C(N*N,v);
+	n_t *c = C.data();
+	const int M = 1;
+
+	const double t0 = omp_get_wtime();
+#pragma omp target enter data map(to:a[:N*N],b[:N*N])
+#pragma omp target enter data map(to:c[:N*N])
+	const double t1 = omp_get_wtime();
+	for(int l=0;l<M;++l)
+#pragma omp target teams distribute parallel for
+	for(int i=0;i<N;++i)
+		for(int k=0;k<N;++k)
+			for(int j=0;j<N;++j)
+				c[N * i + j] += alpha * a[N * i + k] * b[N * k + j];
+	const double t2 = omp_get_wtime();
+#pragma omp target exit data map(from:c[:N*N])
+	const double t3 = omp_get_wtime();
+
+	const auto dt_i = (t1 - t0) / M;
+	const auto dt_s = (t2 - t1) / M;
+	const auto dt_o = (t3 - t2) / M;
+	const auto dt_t = (t3 - t0) / M;
+	print_performance(__FUNCTION__, dt_s, dt_i, dt_o, dt_t);
+	if ( want_serial_check )
+		assert ( R == C );
+}
+
