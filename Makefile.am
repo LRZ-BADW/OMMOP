@@ -9,6 +9,9 @@ basic_CXXFLAGS=${OPENMP_CXXFLAGS}
 basic_LDADD=
 endif
 
+dist_doc_DATA=lumi_batch.sh
+dist_doc_DATA+=lumi_login.sh
+
 if HAVE_OPENMP
 bin_PROGRAMS+=loop$(EXEEXT)
 loop_SOURCES=loop.cpp
