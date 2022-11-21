@@ -1,5 +1,6 @@
 SHELL=bash
 
+noinst_HEADERS=common.hpp
 bin_PROGRAMS=
 if HAVE_OPENMP
 bin_PROGRAMS+=basic
@@ -8,8 +9,9 @@ basic_CXXFLAGS=${OPENMP_CXXFLAGS}
 basic_LDADD=
 endif
 
-test: all
+.PHONY: t test
+t test: all
 if HAVE_OPENMP
-	./basic$(EXEEXT)
+	for E in `seq 1 10`; do N=$$((2**E)) ./basic$(EXEEXT); done
 endif
 

@@ -1,7 +1,6 @@
-#include <omp.h>
-#include <iostream>
+#include "common.hpp"
+
 int main()
 {
-#pragma omp parallel
-	std::cout << " using " << omp_get_num_threads() << " threads" << std::endl;
+	a_t a = MatMatMul_CPU_serial();
 }
