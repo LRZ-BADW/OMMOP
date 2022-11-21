@@ -75,7 +75,7 @@ const a_t R = want_serial_check ? (want_serial_check == 2 ? MatMatMul_CPU_serial
 a_t MatMatMul_CPU___openmp(void)
 {
 	const a_t A{gen_mtx()}, B(gen_mtx());
-       	const n_t *a = A.data(), *b = B.data();
+	const n_t *a = A.data(), *b = B.data();
 	a_t C(N*N,v);
 	n_t *c = C.data();
 	const auto t0 = omp_get_wtime();
@@ -92,6 +92,27 @@ a_t MatMatMul_CPU___openmp(void)
 	if ( want_serial_check )
 		assert ( R == C );
 	return C;
+}
+
+void MatMatMul_GPU___openmp(void)
+{
+	const a_t A{gen_mtx()}, B(gen_mtx());
+	const n_t *a = A.data(), *b = B.data();
+	a_t C(N*N,v);
+	n_t *c = C.data();
+	const auto t0 = omp_get_wtime();
+#pragma omp target map(to:alpha,a[:N*N],b[:N*N]) map(from:c[:N*N])
+#pragma omp teams default(shared)
+#pragma omp distribute parallel for
+	for(int i=0;i<N;++i)
+		for(int k=0;k<N;++k)
+			for(int j=0;j<N;++j)
+				c[N * i + j] += alpha * a[N * i + k] * b[N * k + j];
+	const auto t1 = omp_get_wtime();
+	const auto dt_s = t1 - t0;
+	print_performance(__FUNCTION__, dt_s);
+	if ( want_serial_check )
+		assert ( R == C );
 }
 
 

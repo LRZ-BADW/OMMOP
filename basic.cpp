@@ -2,6 +2,7 @@
 
 int main()
 {
-	const a_t b = MatMatMul_CPU___openmp();
+	const a_t a = MatMatMul_CPU___openmp();
+	MatMatMul_GPU___openmp();
 }
 
