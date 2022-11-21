@@ -11,6 +11,7 @@ CXXFLAGS_backup="$CXXFLAGS"; # opencl flags needed to detect its header
 CXXFLAGS="$OPENMP_CXXFLAGS $CXXFLAGS";
 AC_CONFIG_HEADERS([config.h])
 AC_CHECK_HEADERS([omp.h])
+AC_CHECK_FUNC([omp_get_place_num], AC_DEFINE([HAVE_OMP_GET_PLACE_NUM], [1], [omp_get_place_num]))
 AC_CHECK_FUNC([omp_get_team_num])
 if test x"$ac_cv_func_omp_get_team_num" != x"yes"; then
 	date;
