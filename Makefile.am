@@ -11,6 +11,7 @@ endif
 
 .PHONY: t test
 t test: all
+	env | grep ^OMP_ ; true
 if HAVE_OPENMP
 	for E in `seq 1 10`; do RANDOMIZED=1 N=$$((2**E)) ./basic$(EXEEXT); done
 endif
