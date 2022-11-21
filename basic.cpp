@@ -2,5 +2,6 @@
 
 int main()
 {
-	a_t a = MatMatMul_CPU_serial();
+	const a_t b = MatMatMul_CPU___openmp();
 }
+
