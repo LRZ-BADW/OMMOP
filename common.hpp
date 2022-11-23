@@ -432,3 +432,146 @@ void MatMatMul_GPU___data_3(void)
 		assert ( R == C );
 }
 
+template <int IBS=256, int JBS=128, int KBS=64, int ISS=4, int JSS=2, int KSS=4>
+void MatMatMul_GPU___data_4(void)
+{
+	// 2-level (cache+register) blocking and 2-level parallelism: IJKijkijk
+	// each thread computes a rectangular block. it multiplies a block of rows by a block of columns, proceeding by smaller rectangles, computed with an explicit 2-level tiling and cache blocking of operands and result vector
+	const int ibs = IBS;
+	const int kbs = KBS;
+	const int jbs = JBS;
+	const int iss = ISS;
+	const int jss = JSS;
+	const int kss = KSS;
+
+	if (N%IBS || N%JBS || IBS%ISS || JBS%JSS || KBS%KSS )
+	{
+		std::cout << __func__ << " skip incompatibly parameterized kernel while using cache blocks " << "  ibs x jbs x kbs = " << ibs << " x " << jbs << " x " << kbs << "  and register blocks  " << "iss x jss x kss = " << iss << " x " << jss << " x " << kss << std::endl;
+		return;
+	}
+	const int mnt = (N / ibs) * (N / jbs); // max num threads
+	const int its = std::gcd(N/ibs,N/jbs);
+	const int jts = mnt / its;
+	assert ( N % ibs == 0 );
+	assert ( N % jbs == 0 );
+	assert ( N % kbs == 0 );
+	assert ( N % iss == 0 );
+	assert ( N % jss == 0 );
+	assert ( N % kss == 0 );
+	assert ( ibs % iss == 0 );
+	assert ( jbs % jss == 0 );
+	assert ( kbs % kss == 0 );
+	const a_t A{gen_mtx()}, B{gen_mtx()};
+	const n_t *__restrict__ a = A.data(), *__restrict__ b = B.data();
+	a_t C(N*N,v);
+	n_t * __restrict__ c = C.data();
+	const int M = 1;
+
+	if (want_verbose > 0)
+		std::cout << __func__ << ": max coarse parallelism is  " << mnt << " = its x jts x 1 = " << its << " x " << jts << " x 1  using cache blocks " << "  ibs x jbs x kbs = " << ibs << " x " << jbs << " x " << kbs << "  and register blocks  " << "iss x jss x kss = " << iss << " x " << jss << " x " << kss << std::endl;
+	if (want_verbose > 0)
+		std::cout << __func__ << ": omp_get_max_threads=" << omp_get_max_threads() << std::endl;
+	if (want_verbose > 0)
+		std::cout << __func__ << ": env_omp_num_teams=" << env_omp_num_teams << std::endl;
+	assert ( N % its == 0 );
+	assert ( N % jts == 0 );
+	assert ( N * N % ( its * jts ) == 0 );
+	const int itb = N/(its*ibs);
+	const int jtb = N/(jts*jbs);
+	assert ( itb > 0 );
+	assert ( jtb > 0 );
+
+	const double t0 = omp_get_wtime();
+#pragma omp target enter data map(to:a[:N*N],b[:N*N])
+#pragma omp target enter data map(to:c[:N*N])
+	const double t1 = omp_get_wtime();
+	for(int l=0;l<M;++l)
+#pragma omp target teams distribute parallel for collapse(2) num_teams(env_omp_num_teams)
+	for(int tj=0;tj<jts;++tj)
+	for(int ti=0;ti<its;++ti)
+	for(int bi=ti*itb;bi<(ti+1)*itb;++bi)
+	for(int bj=tj*jtb;bj<(tj+1)*jtb;++bj)
+	{
+		std::array<n_t,ibs*jbs> cc;
+		std::array<n_t,jbs*kbs> bbt;
+		std::array<n_t,kss> av[iss];
+		std::array<n_t,kss> bvt[jss];
+		std::array<n_t,ibs*kbs> aa;
+		std::array<n_t,jss> cv[iss];
+
+		for(int ii=0;ii<ibs;ii++)
+		for(int jj=0;jj<jbs;jj++)
+			cc[jbs * ii + jj] = 0;
+
+		for(int sbk=0;sbk<N/kbs;++sbk)
+		{
+			const int bk = sbk;
+
+			tm2v<n_t,jbs,kbs>(bbt, b, N, bk*kbs, bj*jbs);
+			um2v<n_t,ibs,kbs>(aa, a, N, bi*ibs, bk*kbs);
+
+			for(int ii=0;ii+iss-1<ibs;ii+=iss)
+			for(int jj=0;jj+jss-1<jbs;jj+=jss)
+			for(int kk=0;kk+kss-1<kbs;kk+=kss)
+			{
+				umr2v<n_t,iss,ibs,kbs,kss>(av, aa, ii, kk);
+				umr2v<n_t,jss,jbs,kbs,kss>(bvt, bbt, jj, kk);
+
+				for(int vi=0;vi<iss;++vi)
+					for(int vj=0;vj<jss;++vj)
+					{
+						cv[vi][vj] = 0;
+						for(int vk=0;vk<kss;++vk)
+							cv[vi][vj] += av[vi][vk] * bvt[vj][vk];
+					}
+				for(int vi=0;vi<iss;++vi)
+					for(int vj=0;vj<jss;++vj)
+					{
+						const int i = ii + vi;
+						const int j = jj + vj;
+						cc[jbs * i + j] += cv[vi][vj];
+					}
+			}
+		}
+		for(int ii=0;ii<ibs;ii++)
+		for(int jj=0;jj<jbs;jj++)
+		{
+			const int i = bi * ibs + ii;
+			const int j = bj * jbs + jj;
+
+			c[N * i + j] += alpha * cc[jbs * ii + jj];
+		}
+	}
+	const double t2 = omp_get_wtime();
+#pragma omp target exit data map(from:c[:N*N])
+	const double t3 = omp_get_wtime();
+
+	const auto dt_i = (t1 - t0) / M;
+	const auto dt_s = (t2 - t1) / M;
+	const auto dt_o = (t3 - t2) / M;
+	const auto dt_t = (t3 - t0) / M;
+	print_performance(__FUNCTION__, dt_s, dt_i, dt_o, dt_t);
+
+	const auto uvc = std::count_if(C.begin(),C.end(),[] (n_t vv) {return vv == v;});
+	if (uvc)
+		std::cout << "Found " << uvc << " uninitialized elements out of " << (N*N) << " !" << std::endl;
+	if ( want_serial_check )
+		assert ( R == C );
+	if ( R != C )
+	if ( N < 5 )
+	{
+		std::cout << "Warning: results probably wrong!" << std::endl;
+		for (int i = 0; i < N; ++i)
+		{
+			std::cout << "results row " << i << ": ";
+			for (int j = 0; j < N; ++j)
+				std::cout << C[N*i+j] << " ";
+			std::cout << "  vs reference: ";
+			for (int j = 0; j < N; ++j)
+				std::cout << R[N*i+j] << " ";
+			std::cout << std::endl;
+		}
+
+	}
+}
+
