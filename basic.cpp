@@ -10,6 +10,8 @@ int main()
 		MatMatMul_GPU___data_1();
 	if (want_kernel == 2)
 		MatMatMul_GPU___data_2();
+	if (want_kernel == 3)
+		MatMatMul_GPU___data_3<>();
 	//MatMatMul_GPU___openmp();
 }
 

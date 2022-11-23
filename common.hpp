@@ -292,4 +292,143 @@ void MatMatMul_GPU___data_2(void)
 		assert ( R == C );
 }
 
+template <class N_T,int N_R,int N_C>
+void tm2v(std::array<N_T,N_R*N_C> & dm, const N_T *sm, const int lda, const int aro, const int aco)
+{
+	// transposed rectangular contiguous submatrix to vector copy
+	for(int ii=0;ii<N_C;++ii)
+		for(int kk=0;kk<N_R;++kk)
+			dm[N_C * kk + ii] = sm[lda * (aro + ii) + (aco + kk)];
+}
+
+template <class N_T,int D_R,int S_R,int S_C,int V_L>
+inline
+void umr2v(std::array<N_T,V_L> dv[D_R], const std::array<N_T,S_R*S_C> & sm, const int sro, const int sco)
+{
+	// untransposed matrix' rectangular submatrix to vector rows copy
+	for(int ii=0;ii<D_R;++ii)
+		for(int vj=0;vj<V_L;++vj)
+			dv[ii][vj] = sm[S_C * ( sro + ii ) + (sco + vj)];
+}
+
+template <class N_T,int D_R,int S_R,int S_C,int V_L>
+inline
+void umc2v(std::array<N_T,V_L> dv[D_R], const std::array<N_T,S_R*S_C> & sm, const int sro, const int sco)
+{
+	// untransposed matrix' rectangular submatrix to vector columns copy (submatrix gets transposed)
+	for(int ii=0;ii<D_R;++ii)
+		for(int vj=0;vj<V_L;++vj)
+			dv[ii][vj] = sm[S_C * ( sro + vj ) + (sco + ii)];
+}
+
+template <int IBS=256, int JBS=128, int KBS=64, int ISS=4, int JSS=2, int KSS=4>
+void MatMatMul_GPU___data_3(void)
+{
+	// 2-level (cache+register) blocking and 2-level parallelism: IKJijkijk
+	// each thread computes a rectangular block. it multiplies a block of rows by a block of columns, proceeding by smaller rectangles, computed with an explicit 2-level tiling and cache blocking of operands
+	const a_t A (gen_mtx()), B{gen_mtx()};
+	const n_t *__restrict__ a = A.data(), *__restrict__ b = B.data();
+	a_t C(N*N,v);
+	n_t * __restrict__ c = C.data();
+	const int M = 1;
+
+	const double t0 = omp_get_wtime();
+#pragma omp target enter data map(to:a[:N*N],b[:N*N])
+#pragma omp target enter data map(to:c[:N*N])
+	const double t1 = omp_get_wtime();
+	const int ibs = IBS;
+	const int kbs = KBS;
+	const int jbs = JBS;
+	assert ( N % ibs == 0 );
+	assert ( N % jbs == 0 );
+	assert ( N % kbs == 0 );
+	const int iss = ISS;
+	const int jss = JSS;
+	const int kss = KSS;
+	assert ( N % iss == 0 );
+	assert ( N % jss == 0 );
+	assert ( N % kss == 0 );
+	const int mnt = (N / ibs) * (N / jbs); // max num threads
+	const int its = std::gcd(N/ibs,N/jbs);
+	const int jts = mnt / its;
+	assert ( N % its == 0 );
+	assert ( N % jts == 0 );
+	assert ( N * N % ( its * jts ) == 0 );
+	const int itb = N/(its*ibs);
+	const int jtb = N/(jts*jbs);
+	assert ( itb > 0 );
+	assert ( jtb > 0 );
+	for(int l=0;l<M;++l)
+#pragma omp target teams distribute parallel for collapse(2) num_teams(env_omp_num_teams)
+	for(int tj=0;tj<jts;++tj)
+	for(int ti=0;ti<its;++ti)
+	for(int bi=ti*itb;bi<(ti+1)*itb;++bi)
+	for(int bk=0;bk<N/kbs;++bk)
+	{
+		std::array<n_t,ibs*kbs> aa;
+		um2v<n_t,ibs,kbs>(aa, a, N, bi*ibs, bk*kbs);
+
+		for(int tbj=tj*jtb;tbj<(tj+1)*jtb;++tbj)
+		{
+			const int bj = tbj;
+			std::array<n_t,jbs*kbs> bbt;
+			tm2v<n_t,jbs,kbs>(bbt, b, N, bk*kbs, bj*jbs);
+
+			for(int ii=0;ii+iss-1<ibs;ii+=iss)
+			for(int jj=0;jj+jss-1<jbs;jj+=jss)
+			{
+				std::array<n_t,iss*jss> cc;
+				const int io = bi * ibs + ii;
+				const int jo = bj * jbs + jj;
+
+				for(int vi=0;vi<iss;++vi)
+					for(int vj=0;vj<jss;++vj)
+					{
+						const int i = vi + io;
+						const int j = vj + jo;
+
+						cc[jss * vi + vj] = c[N * i + j];
+					}
+
+				for(int kk=0;kk+kss-1<kbs;kk+=kss)
+				{
+					std::array<n_t,kss> av[iss];
+					umr2v<n_t,iss,ibs,kbs,kss>(av, aa, ii, kk);
+					std::array<n_t,kss> bvt[jss];
+					umr2v<n_t,jss,jbs,kbs,kss>(bvt, bbt, jj, kk);
+
+					for(int vi=0;vi<iss;++vi)
+						for(int vj=0;vj<jss;++vj)
+							for(int vk=0;vk<kss;++vk)
+								cc[jss * vi + vj] += alpha * av[vi][vk] * bvt[vj][vk];
+				}
+
+				for(int vi=0;vi<iss;++vi)
+					for(int vj=0;vj<jss;++vj)
+					{
+						const int i = vi + io;
+						const int j = vj + jo;
+
+						c[N * i + j] = cc[jss * vi + vj];
+					}
+			}
+		}
+	}
+
+	const double t2 = omp_get_wtime();
+#pragma omp target exit data map(from:c[:N*N])
+	const double t3 = omp_get_wtime();
+
+	const auto dt_i = (t1 - t0) / M;
+	const auto dt_s = (t2 - t1) / M;
+	const auto dt_o = (t3 - t2) / M;
+	const auto dt_t = (t3 - t0) / M;
+	print_performance(__FUNCTION__, dt_s, dt_i, dt_o, dt_t);
+
+	const auto uvc = std::count_if(C.begin(),C.end(),[] (n_t vv) {return vv == v;});
+	if (uvc)
+		std::cout << "Found " << uvc << " uninitialized elements out of " << (N*N) << " !" << std::endl;
+	if ( want_serial_check )
+		assert ( R == C );
+}
 
