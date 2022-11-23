@@ -116,8 +116,6 @@ void MatMatMul_GPU___openmp(void)
 		assert ( R == C );
 }
 
-       
-
 void MatMatMul_GPU___data_0(void)
 {
 	const a_t A{gen_mtx()}, B(gen_mtx());
@@ -149,3 +147,54 @@ void MatMatMul_GPU___data_0(void)
 		assert ( R == C );
 }
 
+template <int IBS=8, int JBS=8, int KBS=8>
+void MatMatMul_GPU___data_1(void)
+{
+	// 1-level (access) blocking and 1-level parallelism: IJKijk
+	// each thread computes a block row. it multiplies a block of rows by a block of columns, proceeding by smaller rectangles
+	const int ibs = IBS;
+	const int kbs = KBS;
+	const int jbs = JBS;
+	const a_t A{gen_mtx()}, B{gen_mtx()};
+	const n_t *a = A.data(), *b = B.data();
+	a_t C(N*N,v);
+	n_t *c = C.data();
+	const int M = 1;
+
+	const double t0 = omp_get_wtime();
+#pragma omp target enter data map(to:a[:N*N],b[:N*N])
+#pragma omp target enter data map(to:c[:N*N])
+	const double t1 = omp_get_wtime();
+	assert ( N % ibs == 0 );
+	assert ( N % jbs == 0 );
+	assert ( N % kbs == 0 );
+	for(int l=0;l<M;++l)
+#pragma omp target teams distribute parallel for
+	for(int bi=0;bi<N/ibs;++bi)
+	for(int bj=0;bj<N/jbs;++bj)
+	for(int bk=0;bk<N/kbs;++bk)
+	for(int ii=0;ii<ibs;++ii)
+	for(int jj=0;jj<jbs;++jj)
+	{
+		const int i = bi * ibs + ii;
+		const int j = bj * jbs + jj;
+		n_t acc = 0;
+		for(int kk=0;kk<kbs;++kk)
+		{
+			const int k = bk * kbs + kk;
+			acc += alpha * a[N * i + k] * b[N * k + j];
+		}
+		c[N * i + j] += acc;
+	}
+	const double t2 = omp_get_wtime();
+#pragma omp target exit data map(from:c[:N*N])
+	const double t3 = omp_get_wtime();
+
+	const auto dt_i = (t1 - t0) / M;
+	const auto dt_s = (t2 - t1) / M;
+	const auto dt_o = (t3 - t2) / M;
+	const auto dt_t = (t3 - t0) / M;
+	print_performance(__FUNCTION__, dt_s, dt_i, dt_o, dt_t);
+	if ( want_serial_check )
+		assert ( R == C );
+}
