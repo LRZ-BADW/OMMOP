@@ -3,7 +3,7 @@ MODULESCMD='module load PrgEnv-cray; module load rocm; module load craype-accel-
 eval "${MODULESCMD}"
 set -ex
 if test Makefile.am -nt Makefile -o configure.ac -nt configure ; then autoreconf ; fi
-./configure CXX=CC OPENMP_CXXFLAGS=-fopenmp CXXFLAGS='-O3 -std=c++17 -pipe -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx90a' --host=other
+./configure CXX=CC OPENMP_CXXFLAGS=-fopenmp CXXFLAGS='-O3 -std=c++17 -pipe -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx90a -DCPU_DEFAULTS=1' --host=other
 make clean
 make
 echo -e '#!/bin/bash'"\nenv | grep ^OMP_; ${MODULESCMD} make t;" > lumi_tmp_run.sh
