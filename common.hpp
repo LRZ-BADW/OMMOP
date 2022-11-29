@@ -102,7 +102,7 @@ void MatMatMul_GPU___openmp(void)
 	a_t C(N*N,v);
 	n_t *c = C.data();
 	const auto t0 = omp_get_wtime();
-	#pragma omp target map(to:alpha,a[:N*N],b[:N*N]) map(from:c[:N*N])
+	#pragma omp target map(to:alpha,a[:N*N],b[:N*N]) map(tofrom:c[:N*N])
 	#pragma omp teams default(shared)
 	#pragma omp distribute parallel for
 	for(int i=0;i<N;++i)
