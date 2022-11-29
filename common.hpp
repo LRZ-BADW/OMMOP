@@ -102,9 +102,9 @@ void MatMatMul_GPU___openmp(void)
 	a_t C(N*N,v);
 	n_t *c = C.data();
 	const auto t0 = omp_get_wtime();
-#pragma omp target map(to:alpha,a[:N*N],b[:N*N]) map(from:c[:N*N])
-#pragma omp teams default(shared)
-#pragma omp distribute parallel for
+	#pragma omp target map(to:alpha,a[:N*N],b[:N*N]) map(from:c[:N*N])
+	#pragma omp teams default(shared)
+	#pragma omp distribute parallel for
 	for(int i=0;i<N;++i)
 		for(int k=0;k<N;++k)
 			for(int j=0;j<N;++j)
@@ -125,17 +125,17 @@ void MatMatMul_GPU___data_0(void)
 	const int M = 1;
 
 	const double t0 = omp_get_wtime();
-#pragma omp target enter data map(to:a[:N*N],b[:N*N])
-#pragma omp target enter data map(to:c[:N*N])
+	#pragma omp target enter data map(to:a[:N*N],b[:N*N])
+	#pragma omp target enter data map(to:c[:N*N])
 	const double t1 = omp_get_wtime();
 	for(int l=0;l<M;++l)
-#pragma omp target teams distribute parallel for
+	#pragma omp target teams distribute parallel for
 	for(int i=0;i<N;++i)
 		for(int k=0;k<N;++k)
 			for(int j=0;j<N;++j)
 				c[N * i + j] += alpha * a[N * i + k] * b[N * k + j];
 	const double t2 = omp_get_wtime();
-#pragma omp target exit data map(from:c[:N*N])
+	#pragma omp target exit data map(from:c[:N*N])
 	const double t3 = omp_get_wtime();
 
 	const auto dt_i = (t1 - t0) / M;
@@ -162,14 +162,14 @@ void MatMatMul_GPU___data_1(void)
 	const int M = 1;
 
 	const double t0 = omp_get_wtime();
-#pragma omp target enter data map(to:a[:N*N],b[:N*N])
-#pragma omp target enter data map(to:c[:N*N])
+	#pragma omp target enter data map(to:a[:N*N],b[:N*N])
+	#pragma omp target enter data map(to:c[:N*N])
 	const double t1 = omp_get_wtime();
 	assert ( N % ibs == 0 );
 	assert ( N % jbs == 0 );
 	assert ( N % kbs == 0 );
 	for(int l=0;l<M;++l)
-#pragma omp target teams distribute parallel for
+	#pragma omp target teams distribute parallel for
 	for(int bi=0;bi<N/ibs;++bi)
 	for(int bj=0;bj<N/jbs;++bj)
 	for(int bk=0;bk<N/kbs;++bk)
@@ -187,7 +187,7 @@ void MatMatMul_GPU___data_1(void)
 		c[N * i + j] += acc;
 	}
 	const double t2 = omp_get_wtime();
-#pragma omp target exit data map(from:c[:N*N])
+	#pragma omp target exit data map(from:c[:N*N])
 	const double t3 = omp_get_wtime();
 
 	const auto dt_i = (t1 - t0) / M;
@@ -226,8 +226,8 @@ void MatMatMul_GPU___data_2(void)
 	const int M = 1;
 
 	const double t0 = omp_get_wtime();
-#pragma omp target enter data map(to:a[:N*N],b[:N*N])
-#pragma omp target enter data map(to:c[:N*N])
+	#pragma omp target enter data map(to:a[:N*N],b[:N*N])
+	#pragma omp target enter data map(to:c[:N*N])
 	const double t1 = omp_get_wtime();
 	assert ( N % ibs == 0 );
 	assert ( N % jbs == 0 );
@@ -246,7 +246,7 @@ void MatMatMul_GPU___data_2(void)
 	assert ( itb > 0 );
 	assert ( jtb > 0 );
 	for(int l=0;l<M;++l)
-#pragma omp target teams distribute parallel for collapse(2) num_teams(env_omp_num_teams)
+	#pragma omp target teams distribute parallel for collapse(2) num_teams(env_omp_num_teams)
 	for(int tj=0;tj<jts;++tj)
 	for(int ti=0;ti<its;++ti)
 	for(int bi=ti*itb;bi<(ti+1)*itb;++bi)
@@ -276,7 +276,7 @@ void MatMatMul_GPU___data_2(void)
 		}
 	}
 	const double t2 = omp_get_wtime();
-#pragma omp target exit data map(from:c[:N*N])
+	#pragma omp target exit data map(from:c[:N*N])
 	const double t3 = omp_get_wtime();
 
 	const auto dt_i = (t1 - t0) / M;
@@ -333,8 +333,8 @@ void MatMatMul_GPU___data_3(void)
 	const int M = 1;
 
 	const double t0 = omp_get_wtime();
-#pragma omp target enter data map(to:a[:N*N],b[:N*N])
-#pragma omp target enter data map(to:c[:N*N])
+	#pragma omp target enter data map(to:a[:N*N],b[:N*N])
+	#pragma omp target enter data map(to:c[:N*N])
 	const double t1 = omp_get_wtime();
 	const int ibs = IBS;
 	const int kbs = KBS;
@@ -359,7 +359,7 @@ void MatMatMul_GPU___data_3(void)
 	assert ( itb > 0 );
 	assert ( jtb > 0 );
 	for(int l=0;l<M;++l)
-#pragma omp target teams distribute parallel for collapse(2) num_teams(env_omp_num_teams)
+	#pragma omp target teams distribute parallel for collapse(2) num_teams(env_omp_num_teams)
 	for(int tj=0;tj<jts;++tj)
 	for(int ti=0;ti<its;++ti)
 	for(int bi=ti*itb;bi<(ti+1)*itb;++bi)
@@ -416,7 +416,7 @@ void MatMatMul_GPU___data_3(void)
 	}
 
 	const double t2 = omp_get_wtime();
-#pragma omp target exit data map(from:c[:N*N])
+	#pragma omp target exit data map(from:c[:N*N])
 	const double t3 = omp_get_wtime();
 
 	const auto dt_i = (t1 - t0) / M;
@@ -482,11 +482,11 @@ void MatMatMul_GPU___data_4(void)
 	assert ( jtb > 0 );
 
 	const double t0 = omp_get_wtime();
-#pragma omp target enter data map(to:a[:N*N],b[:N*N])
-#pragma omp target enter data map(to:c[:N*N])
+	#pragma omp target enter data map(to:a[:N*N],b[:N*N])
+	#pragma omp target enter data map(to:c[:N*N])
 	const double t1 = omp_get_wtime();
 	for(int l=0;l<M;++l)
-#pragma omp target teams distribute parallel for collapse(2) num_teams(env_omp_num_teams)
+	#pragma omp target teams distribute parallel for collapse(2) num_teams(env_omp_num_teams)
 	for(int tj=0;tj<jts;++tj)
 	for(int ti=0;ti<its;++ti)
 	for(int bi=ti*itb;bi<(ti+1)*itb;++bi)
@@ -543,7 +543,7 @@ void MatMatMul_GPU___data_4(void)
 		}
 	}
 	const double t2 = omp_get_wtime();
-#pragma omp target exit data map(from:c[:N*N])
+	#pragma omp target exit data map(from:c[:N*N])
 	const double t3 = omp_get_wtime();
 
 	const auto dt_i = (t1 - t0) / M;
