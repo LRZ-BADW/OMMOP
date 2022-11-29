@@ -31,6 +31,19 @@ a_t gen_mtx(void)
 	return A;
 }
 
+void results_vs_reference(const a_t & R, const a_t & C)
+{
+	for (int i = 0; i < N; ++i)
+	{
+		std::cout << "results row " << i << ": ";
+		for (int j = 0; j < N; ++j)
+			std::cout << C[N*i+j] << " ";
+		std::cout << "  vs reference: ";
+		for (int j = 0; j < N; ++j)
+			std::cout << R[N*i+j] << " ";
+		std::cout << std::endl;
+	}
+}
 void print_performance(const char*fn, t_t dt_s, t_t dt_i=0, t_t dt_o=0, t_t dt_t=0)
 {
 	const char * tsep = "";
@@ -112,6 +125,8 @@ void MatMatMul_GPU___openmp(void)
 	const auto t1 = omp_get_wtime();
 	const auto dt_s = t1 - t0;
 	print_performance(__FUNCTION__, dt_s);
+	if ( R != C && N < 5 )
+		results_vs_reference(R, C);
 	if ( want_serial_check )
 		assert ( R == C );
 }
@@ -555,23 +570,11 @@ void MatMatMul_GPU___data_4(void)
 	const auto uvc = std::count_if(C.begin(),C.end(),[] (n_t vv) {return vv == v;});
 	if (uvc)
 		std::cout << "Found " << uvc << " uninitialized elements out of " << (N*N) << " !" << std::endl;
+	if ( R != C )
+		std::cout << "Warning: results probably wrong!" << std::endl;
+	if ( R != C && N < 5 )
+		results_vs_reference(R, C);
 	if ( want_serial_check )
 		assert ( R == C );
-	if ( R != C )
-	if ( N < 5 )
-	{
-		std::cout << "Warning: results probably wrong!" << std::endl;
-		for (int i = 0; i < N; ++i)
-		{
-			std::cout << "results row " << i << ": ";
-			for (int j = 0; j < N; ++j)
-				std::cout << C[N*i+j] << " ";
-			std::cout << "  vs reference: ";
-			for (int j = 0; j < N; ++j)
-				std::cout << R[N*i+j] << " ";
-			std::cout << std::endl;
-		}
-
-	}
 }
 
