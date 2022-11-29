@@ -2,7 +2,9 @@
 
 int main()
 {
-	if (want_kernel == -1)
+	if (want_kernel == -2 && want_serial_check != 1)
+		MatMatMul_CPU___serial();
+	if (want_kernel == -1 && want_serial_check != 2)
 		MatMatMul_CPU___openmp();
 	//MatMatMul_GPU___openmp();
 	if (want_kernel == 0)

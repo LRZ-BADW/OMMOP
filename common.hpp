@@ -71,7 +71,7 @@ a_t MatMatMul_CPU___serial(void)
 }
 
 a_t MatMatMul_CPU___openmp(void);
-const a_t R = want_serial_check ? (want_serial_check == 2 ? MatMatMul_CPU___serial() : MatMatMul_CPU___serial()) : gen_mtx();
+const a_t R = want_serial_check ? (want_serial_check == 2 ? MatMatMul_CPU___openmp() : MatMatMul_CPU___serial()) : gen_mtx();
 
 a_t MatMatMul_CPU___openmp(void)
 {
