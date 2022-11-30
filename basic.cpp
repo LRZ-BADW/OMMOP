@@ -2,8 +2,10 @@
 
 #if CPU_DEFAULTS
 #define PARMS 512,256,128,4,4,2
+#define PARMSK 2,2,4
 #else
 #define PARMS 64,64,64,4,2,4
+#define PARMSK 16,16,256
 #endif
 
 int main()
@@ -24,5 +26,7 @@ int main()
 		MatMatMul_GPU___data_3<PARMS>();
 	if (want_kernel == 4)
 		MatMatMul_GPU___data_4<PARMS>();
+	if (want_kernel == 5)
+		MatMatMul_GPU___data_5<PARMSK>();
 }
 

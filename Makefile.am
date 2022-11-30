@@ -32,5 +32,6 @@ if HAVE_OPENMP
 	set -ex; for E in `seq 10 11`; do KERNEL=2  RANDOMIZED=1 N=$$((2**E)) ./basic$(EXEEXT); done
 	set -ex; for E in `seq 9 11`; do KERNEL=3  RANDOMIZED=1 N=$$((2**E)) ./basic$(EXEEXT); done
 	set -ex; for E in `seq 9 11`; do KERNEL=4  RANDOMIZED=1 N=$$((2**E)) ./basic$(EXEEXT); done
+	set -ex; for E in `seq 9 12`; do KERNEL=5  RANDOMIZED=1 N=$$((2**E)) ./basic$(EXEEXT); done
 endif
 

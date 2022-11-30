@@ -578,3 +578,103 @@ void MatMatMul_GPU___data_4(void)
 		assert ( R == C );
 }
 
+template <int ISS=4, int JSS=2, int KSS=4>
+void MatMatMul_GPU___data_5(void)
+{
+	const int iss = ISS;
+	const int jss = JSS;
+	const int kss = KSS;
+
+	const a_t A{gen_mtx()}, B{gen_mtx()};
+	const n_t *__restrict__ a = A.data(), *__restrict__ b = B.data();
+	a_t C(N*N,v);
+	n_t * __restrict__ c = C.data();
+	const int M = 1;
+
+	const double t0 = omp_get_wtime();
+	#pragma omp target enter data map(to:a[:N*N],b[:N*N])
+	#pragma omp target enter data map(to:c[:N*N])
+	const double t1 = omp_get_wtime();
+	omp_set_num_threads(kss);
+	const int blockDim_x = iss;
+	const int blockDim_y = jss;
+	const int BlockSize = blockDim_y;
+	assert ( kss == blockDim_x * blockDim_y );
+	const int gridDim_x = N / blockDim_x;
+	const int gridDim_y = N / blockDim_y;
+	if (want_verbose > 0)
+		printf("gridDim %d x %d ",gridDim_x,gridDim_y),
+		printf("blockSize:  %d\n",BlockSize);
+	assert ( N == blockDim_x * gridDim_x );
+	assert ( N == blockDim_y * gridDim_y );
+	for(int l=0;l<M;++l)
+	#pragma omp target teams distribute collapse(2)
+	for (int blockIdx_x =0; blockIdx_x <gridDim_x; ++blockIdx_x )
+	for (int blockIdx_y =0; blockIdx_y <gridDim_y; ++blockIdx_y )
+	{
+		const int bx = blockIdx_x;
+		const int by = blockIdx_y;
+		const int te = omp_get_team_num();
+
+		n_t a_values[BlockSize][BlockSize];
+		n_t b_values[BlockSize][BlockSize];
+		#pragma omp parallel
+		{
+			const int a_cols = N;
+			const int tn = omp_get_thread_num();
+			const int tx = tn % blockDim_y;
+			const int ty = tn / blockDim_y;
+
+			const int b_cols = blockDim_x * gridDim_x;
+			const int steps = a_cols / BlockSize;
+			n_t thread_result = 0.0;
+			for(int step = 0; step < steps; step++)
+			{
+				const int a_idx = BlockSize * (a_cols * by + step);
+				const int b_idx = BlockSize * (b_cols * step + bx);
+
+				a_values[ty][tx] = a[a_idx + a_cols * ty + tx];
+				b_values[ty][tx] = b[b_idx + b_cols * ty + tx];
+				#pragma omp barrier
+				for(int i = 0; i < BlockSize; i++)
+				{
+					thread_result += a_values[ty][i] * b_values[i][tx];
+				}
+				#pragma omp barrier
+			}
+			const unsigned block_offset = b_cols * BlockSize * by + BlockSize * bx;
+			c[block_offset + b_cols * ty + tx] += alpha * thread_result;
+		}
+	}
+	const double t2 = omp_get_wtime();
+	#pragma omp target exit data map(from:c[:N*N])
+	const double t3 = omp_get_wtime();
+
+	const auto dt_i = (t1 - t0) / M;
+	const auto dt_s = (t2 - t1) / M;
+	const auto dt_o = (t3 - t2) / M;
+	const auto dt_t = (t3 - t0) / M;
+	print_performance(__FUNCTION__, dt_s, dt_i, dt_o, dt_t);
+
+	const auto uvc = std::count_if(C.begin(),C.end(),[] (n_t vv) {return vv == v;});
+	if (uvc)
+		std::cout << "Found " << uvc << " uninitialized elements out of " << (N*N) << " !" << std::endl;
+	if ( R != C )
+	if ( N < 9 )
+	{
+		std::cout << "Warning: results probably wrong!" << std::endl;
+		for (int i = 0; i < N; ++i)
+		{
+			std::cout << "results row " << i << ": ";
+			for (int j = 0; j < N; ++j)
+				std::cout << C[N*i+j] << " ";
+			std::cout << "  vs reference: ";
+			for (int j = 0; j < N; ++j)
+				std::cout << R[N*i+j] << " ";
+			std::cout << std::endl;
+		}
+
+	}
+	if ( want_serial_check )
+		assert ( R == C );
+}
