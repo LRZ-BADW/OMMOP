@@ -144,9 +144,10 @@ void MatMatMul_GPU___data_0(void)
 	#pragma omp target enter data map(to:c[:N*N])
 	const double t1 = omp_get_wtime();
 	for(int l=0;l<M;++l)
-	#pragma omp target teams distribute parallel for
+	#pragma omp target teams distribute
 	for(int i=0;i<N;++i)
 		for(int k=0;k<N;++k)
+			#pragma omp parallel for
 			for(int j=0;j<N;++j)
 				c[N * i + j] += alpha * a[N * i + k] * b[N * k + j];
 	const double t2 = omp_get_wtime();
@@ -184,8 +185,9 @@ void MatMatMul_GPU___data_1(void)
 	assert ( N % jbs == 0 );
 	assert ( N % kbs == 0 );
 	for(int l=0;l<M;++l)
-	#pragma omp target teams distribute parallel for
+	#pragma omp target teams distribute
 	for(int bi=0;bi<N/ibs;++bi)
+	#pragma omp parallel for
 	for(int bj=0;bj<N/jbs;++bj)
 	for(int bk=0;bk<N/kbs;++bk)
 	for(int ii=0;ii<ibs;++ii)
@@ -261,8 +263,9 @@ void MatMatMul_GPU___data_2(void)
 	assert ( itb > 0 );
 	assert ( jtb > 0 );
 	for(int l=0;l<M;++l)
-	#pragma omp target teams distribute parallel for collapse(2) num_teams(env_omp_num_teams)
+	#pragma omp target teams distribute
 	for(int tj=0;tj<jts;++tj)
+	#pragma omp parallel for
 	for(int ti=0;ti<its;++ti)
 	for(int bi=ti*itb;bi<(ti+1)*itb;++bi)
 	for(int bk=0;bk<N/kbs;++bk)
@@ -374,8 +377,9 @@ void MatMatMul_GPU___data_3(void)
 	assert ( itb > 0 );
 	assert ( jtb > 0 );
 	for(int l=0;l<M;++l)
-	#pragma omp target teams distribute parallel for collapse(2) num_teams(env_omp_num_teams)
+	#pragma omp target teams distribute
 	for(int tj=0;tj<jts;++tj)
+	#pragma omp parallel for
 	for(int ti=0;ti<its;++ti)
 	for(int bi=ti*itb;bi<(ti+1)*itb;++bi)
 	for(int bk=0;bk<N/kbs;++bk)
@@ -501,8 +505,9 @@ void MatMatMul_GPU___data_4(void)
 	#pragma omp target enter data map(to:c[:N*N])
 	const double t1 = omp_get_wtime();
 	for(int l=0;l<M;++l)
-	#pragma omp target teams distribute parallel for collapse(2) num_teams(env_omp_num_teams)
+	#pragma omp target teams distribute
 	for(int tj=0;tj<jts;++tj)
+	#pragma omp parallel for
 	for(int ti=0;ti<its;++ti)
 	for(int bi=ti*itb;bi<(ti+1)*itb;++bi)
 	for(int bj=tj*jtb;bj<(tj+1)*jtb;++bj)

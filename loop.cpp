@@ -3,12 +3,12 @@
 int main()
 {
 	#pragma omp target teams
-	#pragma omp parallel for
-	for (int i = 0; i < omp_get_num_threads() ; ++ i)
+	#pragma omp parallel
 	{
 		const int team = omp_get_team_num();
 		const int tid = omp_get_thread_num();
-		if ( i == 0 )
-			printf("i=%d team=%d/%d tid=%d/%d\n",i,team,omp_get_num_teams(),tid,omp_get_num_threads());
+		if ( tid == 0 )
+		if ( team == 0 )
+			printf("team=%d/%d tid=%d/%d\n",team,omp_get_num_teams(),tid,omp_get_num_threads());
 	}
 }
