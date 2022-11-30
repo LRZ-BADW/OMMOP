@@ -1,11 +1,11 @@
 #include "common.hpp"
 
 #if CPU_DEFAULTS
-#define PARMS 512,256,128,4,4,2
 #define PARMSK 2,2,4
+#define PARMSD 512,256,128,4,4,2
 #else
-#define PARMS 64,64,64,4,2,4
 #define PARMSK 16,16,256
+#define PARMSD 64,64,64,4,2,4
 #endif
 
 int main()
@@ -21,11 +21,11 @@ int main()
 	if (want_kernel == 1)
 		MatMatMul_GPU___data_1();
 	if (want_kernel == 2)
-		MatMatMul_GPU___data_2<PARMS>();
+		MatMatMul_GPU___data_2<PARMSD>();
 	if (want_kernel == 3)
-		MatMatMul_GPU___data_3<PARMS>();
+		MatMatMul_GPU___data_3<PARMSD>();
 	if (want_kernel == 4)
-		MatMatMul_GPU___data_4<PARMS>();
+		MatMatMul_GPU___data_4<PARMSD>();
 	if (want_kernel == 5)
 		MatMatMul_GPU___data_5<PARMSK>();
 }
