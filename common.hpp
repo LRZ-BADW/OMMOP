@@ -280,9 +280,9 @@ void MatMatMul_GPU___data_2(void)
 	assert ( jtb > 0 );
 	for(int l=0;l<M;++l)
 	#pragma omp target teams distribute
-	for(int tj=0;tj<jts;++tj)
-	#pragma omp parallel for
 	for(int ti=0;ti<its;++ti)
+	#pragma omp parallel for
+	for(int tj=0;tj<jts;++tj)
 	for(int bi=ti*itb;bi<(ti+1)*itb;++bi)
 	for(int bk=0;bk<N/kbs;++bk)
 	{
@@ -394,9 +394,9 @@ void MatMatMul_GPU___data_3(void)
 	assert ( jtb > 0 );
 	for(int l=0;l<M;++l)
 	#pragma omp target teams distribute
-	for(int tj=0;tj<jts;++tj)
-	#pragma omp parallel for
 	for(int ti=0;ti<its;++ti)
+	#pragma omp parallel for
+	for(int tj=0;tj<jts;++tj)
 	for(int bi=ti*itb;bi<(ti+1)*itb;++bi)
 	for(int bk=0;bk<N/kbs;++bk)
 	{
@@ -522,9 +522,9 @@ void MatMatMul_GPU___data_4(void)
 	const double t1 = omp_get_wtime();
 	for(int l=0;l<M;++l)
 	#pragma omp target teams distribute
-	for(int tj=0;tj<jts;++tj)
-	#pragma omp parallel for
 	for(int ti=0;ti<its;++ti)
+	#pragma omp parallel for
+	for(int tj=0;tj<jts;++tj)
 	for(int bi=ti*itb;bi<(ti+1)*itb;++bi)
 	for(int bj=tj*jtb;bj<(tj+1)*jtb;++bj)
 	{
