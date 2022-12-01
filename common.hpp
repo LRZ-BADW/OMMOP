@@ -1,9 +1,12 @@
 #include <cassert>
 #include <random>
 #include <vector>
+#include <algorithm>
 #include <omp.h>
+#include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <string>
 #include <functional>
 #include <algorithm>
 
@@ -16,7 +19,20 @@ const n_t alpha = v;
 const int env_omp_num_teams = getenv("OMP_NUM_TEAMS") ? atoi(getenv("OMP_NUM_TEAMS")) : 1;
 const int want_verbose = getenv("VERBOSE") ? atoi(getenv("VERBOSE")) : 0;
 const int want_randomized = getenv("RANDOMIZED") ? atoi(getenv("RANDOMIZED")) : 1;
-const int want_kernel = getenv("KERNEL") ? atoi(getenv("KERNEL")) : 1;
+const std::vector<int> want_kernels = [](){
+	std::vector<int> kv;
+	std::string ks (getenv("KERNEL"));
+	if (!ks.empty()) {
+		int i;
+		std::replace(ks.begin(),ks.end(),',',' ');
+		std::istringstream ins(ks,std::ios::in);
+		while( ins >> i )
+			kv.push_back(i);
+	}
+	else
+		kv.push_back(1);
+	return kv;
+} ();
 const auto const_seed = std::random_device()();
 using t_t = double;
 
