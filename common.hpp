@@ -359,7 +359,7 @@ template <int IBS=256, int JBS=128, int KBS=64, int ISS=4, int JSS=2, int KSS=4>
 void MatMatMul_GPU___data_3(void)
 {
 	// 2-level (cache+register) blocking and 2-level parallelism: IKJijkijk
-	// each thread computes a rectangular block. it multiplies a block of rows by a block of columns, proceeding by smaller rectangles, computed with an explicit 2-level tiling and cache blocking of operands
+	// each thread computes a rectangular block. it multiplies a block of rows by a block of columns, proceeding by smaller rectangles, computed with an explicit 2-level tiling and cache blocking of operands and result vector
 	const a_t A (gen_mtx()), B{gen_mtx()};
 	const n_t *__restrict__ a = A.data(), *__restrict__ b = B.data();
 	a_t C(N*N,v);
@@ -471,7 +471,7 @@ template <int IBS=256, int JBS=128, int KBS=64, int ISS=4, int JSS=2, int KSS=4>
 void MatMatMul_GPU___data_4(void)
 {
 	// 2-level (cache+register) blocking and 2-level parallelism: IJKijkijk
-	// each thread computes a rectangular block. it multiplies a block of rows by a block of columns, proceeding by smaller rectangles, computed with an explicit 2-level tiling and cache blocking of operands and result vector
+	// each thread computes a rectangular block. it multiplies a block of rows by a block of columns, proceeding by smaller rectangles, computed with an explicit 2-level tiling and cache+register blocking of operands and result vector
 	const int ibs = IBS;
 	const int kbs = KBS;
 	const int jbs = JBS;
