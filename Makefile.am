@@ -38,6 +38,6 @@ endif
 .PHONY: b bench
 b bench: all
 if HAVE_OPENMP
-	set -ex; for E in `seq 10 10`; do KERNEL=0,1,2,3,4 RANDOMIZED=1 N=$$((2**E)) ./basic$(EXEEXT); done
+	set -ex; for E in `seq 10 13`; do KERNEL=0,1,2,3,4,5 RANDOMIZED=1 N=$$((2**E)) ./basic$(EXEEXT); done
 endif
 
