@@ -39,12 +39,14 @@ using t_t = double;
 
 a_t gen_mtx(void)
 {
-	std::mt19937 gen(const_seed);
-	std::uniform_int_distribution<> distrib(1, 4);
-
 	a_t A(N*N,v);
 	if (want_randomized)
+	{
+		std::mt19937 gen(const_seed);
+		std::uniform_int_distribution<> distrib(1, 4);
+
 		std::generate_n(A.begin(), N*N, std::bind(distrib,gen) );
+	}
 	return A;
 }
 
