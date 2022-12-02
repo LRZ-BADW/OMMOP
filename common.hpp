@@ -21,8 +21,9 @@ const int want_verbose = getenv("VERBOSE") ? atoi(getenv("VERBOSE")) : 0;
 const int want_randomized = getenv("RANDOMIZED") ? atoi(getenv("RANDOMIZED")) : 1;
 const std::vector<int> want_kernels = [](){
 	std::vector<int> kv;
-	std::string ks (getenv("KERNEL"));
-	if (!ks.empty()) {
+	const char * es = getenv("KERNEL");
+	if (es) {
+		std::string ks (es);
 		int i;
 		std::replace(ks.begin(),ks.end(),',',' ');
 		std::istringstream ins(ks,std::ios::in);
